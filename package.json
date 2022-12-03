@@ -10,7 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:markdown-code-block-formatter.formatCodeBlock"
+    "onLanguage:markdown"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -19,7 +19,16 @@
         "command": "markdown-code-block-formatter.formatCodeBlock",
         "title": "Format Code Block"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceLangId == markdown",
+          "command": "markdown-code-block-formatter.formatCodeBlock",
+          "group": "1_modification"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
