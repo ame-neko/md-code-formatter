@@ -10,14 +10,14 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:markdown-code-block-formatter.helloWorld"
+    "onCommand:markdown-code-block-formatter.formatCodeBlock"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "markdown-code-block-formatter.helloWorld",
-        "title": "Hello World"
+        "command": "markdown-code-block-formatter.formatCodeBlock",
+        "title": "Format Code Block"
       }
     ]
   },
