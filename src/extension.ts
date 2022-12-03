@@ -1,6 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
+const unified = require("unified");
+const remarkParse = require("remark-parse");
+const remarkGfm = require("remark-gfm");
 
 interface CodeBlock {
   language: string;
@@ -30,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     let codeBlock: CodeBlock | null = null;
     if (vscode.window.activeTextEditor) {
-      codeBlock = getCodeBlockRange(vscode.window.activeTextEditor?.selection.active.line, vscode.window.activeTextEditor?.document.getText());
+      codeBlock = getCodeBlock(vscode.window.activeTextEditor?.selection.active.line, vscode.window.activeTextEditor?.document.getText());
     }
 
     if (!codeBlock) {
@@ -64,9 +67,46 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-const getCodeBlockRange = (currentLine: number, markdownText: string): CodeBlock | null => {
-  // TODO: implement
+const findCodeBlockElement = (currentLine: number, parseResult: any): CodeBlock | null => {
+  if (parseResult?.children) {
+    for (const element of parseResult?.children) {
+      console.log(element);
+      if (
+        element?.type === "code" &&
+        element?.lang &&
+        element?.value !== undefined &&
+        element?.value !== null &&
+        element?.position?.start?.line <= currentLine + 1 &&
+        element?.position?.end?.line >= currentLine + 1
+      ) {
+        const offset = 1; // line number starts from 1
+        const startLine = element.position.start.line - offset + 1; // + 1 to ignore first line
+        const endLine = element.position.end.line - offset - 1; // - 1 to ignore last line
+        const endRange = vscode.window.activeTextEditor?.document.lineAt(endLine).range.end;
+
+        if (!endRange) {
+          return null;
+        }
+
+        return {
+          language: element.lang,
+          range: new vscode.Range(new vscode.Position(startLine, 0), endRange),
+          text: element.value,
+        };
+      }
+      // dfs
+      const res = findCodeBlockElement(currentLine, element);
+      if (res !== undefined && res !== null) {
+        return res;
+      }
+    }
+  }
   return null;
+};
+
+const getCodeBlock = (currentLine: number, markdownText: string): CodeBlock | null => {
+  const parseResult = unified().use(remarkParse).use(remarkGfm).parse(markdownText);
+  return findCodeBlockElement(currentLine, parseResult);
 };
 
 const getFormattedCode = async (codeBlock: CodeBlock): Promise<string | undefined> => {
