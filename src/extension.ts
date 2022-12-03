@@ -11,6 +11,11 @@ interface CodeBlock {
   text: string;
 }
 
+interface IndentConfig {
+  useSpace: boolean;
+  tabSize: number;
+}
+
 const myProvider = new (class implements vscode.TextDocumentContentProvider {
   provideTextDocumentContent(uri: vscode.Uri): string {
     // invoke cowsay, use uri-path as text
@@ -57,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     initialDocumentEditor.edit((builder) => {
       if (codeBlock && formattedCode) {
-        builder.replace(codeBlock.range, formattedCode);
+        builder.replace(codeBlock.range, addIndentToCodeBlock(formattedCode));
       } else {
         vscode.window.showErrorMessage("Failed to format code block content.");
       }
@@ -146,6 +151,24 @@ const getFormattedCode = async (codeBlock: CodeBlock): Promise<string | undefine
     await vscode.commands.executeCommand("workbench.action.closeActiveEditor", doc.uri);
   }
   return text;
+};
+
+const loadIndentConfig = (defaultSize = 4, defaultUseSpace = true): IndentConfig => {
+  const activeTextTabSize = vscode.window.activeTextEditor?.options.tabSize ?? defaultSize;
+  const useSpace = vscode.window.activeTextEditor?.options.insertSpaces ?? defaultUseSpace;
+
+  return {
+    useSpace: typeof useSpace === "boolean" ? useSpace : useSpace === "true",
+    tabSize: typeof activeTextTabSize === "number" ? activeTextTabSize : parseInt(activeTextTabSize),
+  };
+};
+
+const addIndentToCodeBlock = (formattedCode: string): string => {
+  const indentConfig = loadIndentConfig();
+  const indent = indentConfig.useSpace ? " ".repeat(indentConfig.tabSize) : "\t";
+  const eol = vscode.window.activeTextEditor?.document.eol === 1 ? "\n" : "\r\n";
+  const lines = formattedCode.split(/\r?\n/); // support crlf or lf
+  return lines.map((line) => indent + line).join(eol);
 };
 
 // this method is called when your extension is deactivated
