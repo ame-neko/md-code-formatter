@@ -28,6 +28,24 @@
           "group": "1_modification"
         }
       ]
+    },
+    "configuration": {
+      "properties": {
+        "markdown-code-block-formatter.defaultLanguage": {
+          "type": "string",
+          "description": "Deefault language of code block."
+        },
+        "markdown-code-block-formatter.languageNameMapping": {
+          "type": "object",
+          "patternProperties": {
+            "^.+$": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Mapping of language name of code block to language id used to format code block."
+        }
+      }
     }
   },
   "scripts": {

@@ -67,13 +67,29 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
+const decideLanguage = (languageOfCodeBlock: string | null): string | null => {
+  const configurations = vscode.workspace.getConfiguration("markdown-code-block-formatter");
+  if (languageOfCodeBlock === null) {
+    const defaultLang = configurations.get("defaultLanguage");
+    if (defaultLang && typeof defaultLang === "string") {
+      return defaultLang;
+    } else {
+      return null;
+    }
+  }
+  const languageMapping: { [key: string]: string } | undefined = configurations.get("languageNameMapping");
+  if (languageMapping && typeof languageMapping === "object" && languageOfCodeBlock in languageMapping) {
+    const lang = languageMapping[languageOfCodeBlock];
+    return languageMapping[languageOfCodeBlock];
+  }
+  return languageOfCodeBlock;
+};
+
 const findCodeBlockElement = (currentLine: number, parseResult: any): CodeBlock | null => {
   if (parseResult?.children) {
     for (const element of parseResult?.children) {
-      console.log(element);
       if (
         element?.type === "code" &&
-        element?.lang &&
         element?.value !== undefined &&
         element?.value !== null &&
         element?.position?.start?.line <= currentLine + 1 &&
@@ -87,9 +103,13 @@ const findCodeBlockElement = (currentLine: number, parseResult: any): CodeBlock 
         if (!endRange) {
           return null;
         }
-
+        const language = decideLanguage(element.lang);
+        if (!language) {
+          vscode.window.showErrorMessage("Language of code block is unknown.");
+          return null;
+        }
         return {
-          language: element.lang,
+          language: language,
           range: new vscode.Range(new vscode.Position(startLine, 0), endRange),
           text: element.value,
         };
