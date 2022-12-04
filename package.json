@@ -61,17 +61,25 @@
       "properties": {
         "markdown-code-block-formatter.defaultLanguage": {
           "type": "string",
+          "minLength": 1,
           "description": "Deefault language of code block."
         },
         "markdown-code-block-formatter.languageNameMapping": {
           "type": "object",
           "patternProperties": {
             "^.+$": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           },
           "additionalProperties": false,
           "description": "Mapping of language name of code block to language id used to format code block."
+        },
+        "markdown-code-block-formatter.waitLanguageActivatedTimeoutMs": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 0,
+          "description": "Timeout milliseconds for waiting for language initialization to complete."
         }
       }
     }

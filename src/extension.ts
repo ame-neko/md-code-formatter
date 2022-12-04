@@ -17,19 +17,13 @@ interface IndentConfig {
   tabSize: number;
 }
 
-const myProvider = new (class implements vscode.TextDocumentContentProvider {
-  provideTextDocumentContent(uri: vscode.Uri): string {
-    // invoke cowsay, use uri-path as text
-    return '{"hoge": "fuga"}';
-  }
-})();
+const DEFAULT_TIMEOUT_MS: number = 1000;
+
+const processedLanguagees: Set<string> = new Set();
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  const providerDisposable = vscode.workspace.registerTextDocumentContentProvider("mdcformat", myProvider);
-  context.subscriptions.push(providerDisposable);
-
   let disposableFormat = vscode.commands.registerCommand("markdown-code-block-formatter.format", async () => {
     format(false, false);
   });
@@ -76,7 +70,7 @@ const format = async (formatAll: boolean, minify: boolean) => {
 const formatCodeBlock = async (codeBlock: CodeBlock, initialDocumentUri: vscode.Uri, minify: boolean) => {
   const formattedCode = minify ? getMinifiedCode(codeBlock) : await getFormattedCode(codeBlock); //minify ? getMinifiedCode(codeBlock) :
   if (formattedCode === null) {
-    vscode.window.showErrorMessage(`Failed to ${minify ? "minified" : "formatted"} code block content.`);
+    vscode.window.showErrorMessage(`Failed to get ${minify ? "minified" : "formatted"} code block content.`);
     return;
   }
 
@@ -109,7 +103,6 @@ const decideLanguage = (languageOfCodeBlock: string | null): string | null => {
   }
   const languageMapping: { [key: string]: string } | undefined = configurations.get("languageNameMapping");
   if (languageMapping && typeof languageMapping === "object" && languageOfCodeBlock in languageMapping) {
-    const lang = languageMapping[languageOfCodeBlock];
     return languageMapping[languageOfCodeBlock];
   }
   return languageOfCodeBlock;
@@ -182,11 +175,40 @@ const getMinifiedCode = (codeBlock: CodeBlock): string | null => {
   }
 };
 
+const formatUntilDocChange = async (doc: vscode.TextDocument) => {
+  const configurations = vscode.workspace.getConfiguration("markdown-code-block-formatter");
+
+  let timeoutMs: number | undefined = configurations.get("waitLanguageActivatedTimeoutMs");
+  if (timeoutMs === undefined) {
+    timeoutMs = DEFAULT_TIMEOUT_MS;
+  }
+
+  let isDocumentChanged = false;
+  const disposable = vscode.workspace.onDidChangeTextDocument((e) => {
+    if (e.document === doc) {
+      isDocumentChanged = true;
+    }
+  });
+  const start = Date.now();
+  while (!isDocumentChanged && Date.now() - start < timeoutMs) {
+    await vscode.commands.executeCommand("editor.action.formatDocument", doc.uri);
+    if (isDocumentChanged) {
+      break;
+    }
+    await new Promise(r => setTimeout(r, 100));
+  }
+  disposable.dispose();
+};
+
 const getFormattedCode = async (codeBlock: CodeBlock): Promise<string | undefined> => {
   const doc = await vscode.workspace.openTextDocument({ language: codeBlock.language, content: codeBlock.text });
-  await vscode.window.showTextDocument(doc, { preview: false, preserveFocus: false });
-  await vscode.commands.executeCommand("editor.action.formatDocument", doc.uri);
-  const editor = vscode.window.activeTextEditor;
+  const editor = await vscode.window.showTextDocument(doc, { preview: false, preserveFocus: true });
+  if (processedLanguagees.has(codeBlock.language)) {
+    await vscode.commands.executeCommand("editor.action.formatDocument", doc.uri);
+  } else {
+    processedLanguagees.add(codeBlock.language);
+    await formatUntilDocChange(doc);
+  }
   let text;
   if (editor) {
     text = editor.document.getText();
@@ -220,4 +242,4 @@ const addIndentToCodeBlock = (formattedCode: string, indentNum: number): string 
 };
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
