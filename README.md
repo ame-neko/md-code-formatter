@@ -16,8 +16,8 @@ Please specify language language identifier after triple backticks to format the
 
 ## Extension Settings
 
-| Settings name                                                  | Description                                                                                                           | Default |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------- |
-| `markdown-code-block-formatter.defaultLanguage`                | Deefault language of code block. This language is used when language of code block is filled.                         | `N/A`   |
-| `markdown-code-block-formatter.languageNameMapping`            | Mapping of language name of code block to language id used to format code block. For example: `{ "js": "javascript" } | `N/A`   |
-| `markdown-code-block-formatter.waitLanguageActivatedTimeoutMs` | Timeout milliseconds for waiting for initialization of language feature to complete.                                  | `1000`  |
+| Settings name                                                  | Description                                                                                                            | Default |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------- |
+| `markdown-code-block-formatter.defaultLanguage`                | Deefault language of code block. This language is used when language of code block is filled.                          | `N/A`   |
+| `markdown-code-block-formatter.languageNameMapping`            | Mapping of language name of code block to language id used to format code block. For example: `{ "js": "javascript" }` | `N/A`   |
+| `markdown-code-block-formatter.waitLanguageActivatedTimeoutMs` | Timeout milliseconds for waiting for initialization of language feature to complete.                                   | `1000`  |
