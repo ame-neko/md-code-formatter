@@ -30,6 +30,7 @@
       ]
     },
     "configuration": {
+      "title": "Markdown Code Block Formatter",
       "properties": {
         "markdown-code-block-formatter.defaultLanguage": {
           "type": "string",
