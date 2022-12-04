@@ -1,6 +1,7 @@
-# Markdown Code Block Formatter
+# Code Block Formatter
 
-This extension formats contents of code block of markdown file.
+This extension formats contents of code block of markdown file.  
+Please specify language language identifier after triple backticks to format the code as that language.
 
 ## Features
 * Format code block

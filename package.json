@@ -1,6 +1,6 @@
 {
   "name": "markdown-code-block-formatter",
-  "displayName": "Markdown Code Block Formatter",
+  "displayName": "Code Block Formatter",
   "description": "Format code block of markdown.",
   "version": "0.0.1",
   "engines": {
@@ -72,7 +72,7 @@
       ]
     },
     "configuration": {
-      "title": "Markdown Code Block Formatter",
+      "title": "Code Block Formatter",
       "properties": {
         "markdown-code-block-formatter.defaultLanguage": {
           "type": "string",
