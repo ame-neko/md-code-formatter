@@ -113,6 +113,12 @@ const findCodeBlockElement = (currentLine: number, parseResult: any): CodeBlock 
           vscode.window.showErrorMessage("Language of code block is unknown.");
           return null;
         }
+        vscode.languages.getLanguages().then((supportedLanguages) => {
+          if (!(language in supportedLanguages)) {
+            vscode.window.showWarningMessage(`Language id "${language}" is unkown. Supported languages are: [${supportedLanguages.join(", ")}]`);
+          }
+        });
+
         return {
           language: language,
           range: new vscode.Range(new vscode.Position(startLine, 0), endRange),
