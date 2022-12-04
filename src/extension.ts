@@ -9,6 +9,7 @@ interface CodeBlock {
   language: string;
   range: vscode.Range;
   text: string;
+  indent: number,
 }
 
 interface IndentConfig {
@@ -89,7 +90,7 @@ const formatCodeBlock = async (codeBlock: CodeBlock, initialDocumentUri: vscode.
 
   initialDocumentEditor.edit((builder) => {
     if (codeBlock && formattedCode) {
-      builder.replace(codeBlock.range, addIndentToCodeBlock(formattedCode));
+      builder.replace(codeBlock.range, addIndentToCodeBlock(formattedCode, codeBlock.indent));
     } else {
       vscode.window.showErrorMessage("Failed to format code block content.");
     }
@@ -146,6 +147,7 @@ const findCodeBlockElement = (currentLine: number, parseResult: any, formatAll: 
           language: language,
           range: new vscode.Range(new vscode.Position(startLine, 0), endRange),
           text: element.value,
+          indent: element.position.start.column - 1
         });
         if (!formatAll) {
           return elements;
@@ -209,9 +211,9 @@ const loadIndentConfig = (defaultSize = 4, defaultUseSpace = true): IndentConfig
   };
 };
 
-const addIndentToCodeBlock = (formattedCode: string): string => {
+const addIndentToCodeBlock = (formattedCode: string, indentNum: number): string => {
   const indentConfig = loadIndentConfig();
-  const indent = indentConfig.useSpace ? " ".repeat(indentConfig.tabSize) : "\t";
+  const indent = indentConfig.useSpace ? " ".repeat(indentNum) : "\t".repeat(indentNum);
   const eol = vscode.window.activeTextEditor?.document.eol === 1 ? "\n" : "\r\n";
   const lines = formattedCode.split(/\r?\n/); // support crlf or lf
   return lines.map((line) => indent + line).join(eol);
