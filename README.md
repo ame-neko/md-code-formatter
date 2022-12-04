@@ -4,12 +4,12 @@ This extension formats contents of code block of markdown file.
 
 ## Features
 * Format code block
-    ![](https://github.com/ame-neko/md-code-formatter/blob/master/images/format-code-block-demo.gif?raw=true)
+    ![](https://github.com/ame-neko/md-code-formatter/blob/main/images/format-code-block-demo.gif?raw=true)
   * Copy the contents of the code block into a temporary document, then format it.
 
 * Minify code block 
   * Currently only JSON code block is supported
-    ![](https://github.com/ame-neko/md-code-formatter/blob/master/images/minify-code-block-demo.gif?raw=true)
+    ![](https://github.com/ame-neko/md-code-formatter/blob/main/images/minify-code-block-demo.gif?raw=true)
 
 ## Extension Settings
 
