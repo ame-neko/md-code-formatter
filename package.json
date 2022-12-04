@@ -7,8 +7,19 @@
     "vscode": "^1.73.0"
   },
   "categories": [
+    "Formatters",
     "Other"
   ],
+  "keywords": [
+    "markdown",
+    "format",
+    "code block",
+    "code",
+    "triple backticks"
+  ],
+  "icon": "images/icon.png",
+  "license": "MIT",
+  "publisher": "ame-neko",
   "activationEvents": [
     "onLanguage:markdown"
   ],
