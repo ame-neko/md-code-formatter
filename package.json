@@ -19,6 +19,10 @@
   ],
   "icon": "images/icon.png",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ame-neko/md-code-formatter.git"
+  },
   "publisher": "ame-neko",
   "activationEvents": [
     "onLanguage:markdown"
