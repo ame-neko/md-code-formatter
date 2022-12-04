@@ -16,15 +16,42 @@
   "contributes": {
     "commands": [
       {
-        "command": "markdown-code-block-formatter.formatCodeBlock",
+        "command": "markdown-code-block-formatter.format",
         "title": "Format Code Block"
+      },
+      {
+        "command": "markdown-code-block-formatter.formatAll",
+        "title": "Format All Code Blocks"
+      },
+      {
+        "command": "markdown-code-block-formatter.minify",
+        "title": "Minify Code Block"
+      },
+      {
+        "command": "markdown-code-block-formatter.minifyAll",
+        "title": "Minify All Code Blocks"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "when": "resourceLangId == markdown",
-          "command": "markdown-code-block-formatter.formatCodeBlock",
+          "command": "markdown-code-block-formatter.format",
+          "group": "1_modification"
+        },
+        {
+          "when": "resourceLangId == markdown",
+          "command": "markdown-code-block-formatter.formatAll",
+          "group": "1_modification"
+        },
+        {
+          "when": "resourceLangId == markdown",
+          "command": "markdown-code-block-formatter.minify",
+          "group": "1_modification"
+        },
+        {
+          "when": "resourceLangId == markdown",
+          "command": "markdown-code-block-formatter.minifyAll",
           "group": "1_modification"
         }
       ]

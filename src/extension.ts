@@ -29,48 +29,72 @@ export function activate(context: vscode.ExtensionContext) {
   const providerDisposable = vscode.workspace.registerTextDocumentContentProvider("mdcformat", myProvider);
   context.subscriptions.push(providerDisposable);
 
-  let disposable = vscode.commands.registerCommand("markdown-code-block-formatter.formatCodeBlock", async () => {
-    const initialDocumentUri = vscode.window.activeTextEditor?.document.uri;
-    if (!initialDocumentUri) {
-      vscode.window.showErrorMessage("Failed to get uri of current active document.");
-      return;
-    }
-
-    let codeBlock: CodeBlock | null = null;
-    if (vscode.window.activeTextEditor) {
-      codeBlock = getCodeBlock(vscode.window.activeTextEditor?.selection.active.line, vscode.window.activeTextEditor?.document.getText());
-    }
-
-    if (!codeBlock) {
-      vscode.window.showErrorMessage("Failed to get contents of code block.");
-      return;
-    }
-
-    const formattedCode = await getFormattedCode(codeBlock);
-    if (formattedCode === null) {
-      vscode.window.showErrorMessage("Failed to format code block content.");
-      return;
-    }
-
-    const initialDoc = await vscode.workspace.openTextDocument(initialDocumentUri);
-    await vscode.window.showTextDocument(initialDoc);
-    const initialDocumentEditor = vscode.window.activeTextEditor;
-    if (!initialDocumentEditor) {
-      vscode.window.showErrorMessage("Failed to get editor of current active document");
-      return;
-    }
-
-    initialDocumentEditor.edit((builder) => {
-      if (codeBlock && formattedCode) {
-        builder.replace(codeBlock.range, addIndentToCodeBlock(formattedCode));
-      } else {
-        vscode.window.showErrorMessage("Failed to format code block content.");
-      }
-    });
+  let disposableFormat = vscode.commands.registerCommand("markdown-code-block-formatter.format", async () => {
+    format(false, false);
   });
+  context.subscriptions.push(disposableFormat);
 
-  context.subscriptions.push(disposable);
+  let disposableFormatAll = vscode.commands.registerCommand("markdown-code-block-formatter.formatAll", async () => {
+    format(true, false);
+  });
+  context.subscriptions.push(disposableFormatAll);
+
+  let disposableMinify = vscode.commands.registerCommand("markdown-code-block-formatter.minify", async () => {
+    format(false, true);
+  });
+  context.subscriptions.push(disposableMinify);
+
+  let disposableMinifyAll = vscode.commands.registerCommand("markdown-code-block-formatter.minifyAll", async () => {
+    format(true, true);
+  });
+  context.subscriptions.push(disposableMinifyAll);
 }
+
+const format = async (formatAll: boolean, minify: boolean) => {
+  const initialDocumentUri = vscode.window.activeTextEditor?.document.uri;
+  if (!initialDocumentUri) {
+    vscode.window.showErrorMessage("Failed to get uri of current active document.");
+    return;
+  }
+
+  let codeBlocks: CodeBlock[] | null = null;
+  if (vscode.window.activeTextEditor) {
+    codeBlocks = getCodeBlocks(vscode.window.activeTextEditor?.selection.active.line, vscode.window.activeTextEditor?.document.getText(), formatAll);
+  }
+  if (!codeBlocks) {
+    vscode.window.showErrorMessage("Failed to get contents of code block.");
+    return;
+  }
+  // sort reversed order so that edit does not affect other code block edit
+  codeBlocks.sort((a, b) => b.range.start.line - a.range.start.line);
+  for (const codeBlock of codeBlocks) {
+    await formatCodeBlock(codeBlock, initialDocumentUri, minify);
+  }
+};
+
+const formatCodeBlock = async (codeBlock: CodeBlock, initialDocumentUri: vscode.Uri, minify: boolean) => {
+  const formattedCode = minify ? getMinifiedCode(codeBlock) : await getFormattedCode(codeBlock); //minify ? getMinifiedCode(codeBlock) :
+  if (formattedCode === null) {
+    vscode.window.showErrorMessage(`Failed to ${minify ? "minified" : "formatted"} code block content.`);
+    return;
+  }
+
+  const initialDoc = await vscode.workspace.openTextDocument(initialDocumentUri);
+  await vscode.window.showTextDocument(initialDoc);
+  const initialDocumentEditor = vscode.window.activeTextEditor;
+  if (!initialDocumentEditor) {
+    vscode.window.showErrorMessage("Failed to get editor of current active document");
+    return;
+  }
+
+  initialDocumentEditor.edit((builder) => {
+    if (codeBlock && formattedCode) {
+      builder.replace(codeBlock.range, addIndentToCodeBlock(formattedCode));
+    } else {
+      vscode.window.showErrorMessage("Failed to format code block content.");
+    }
+  });
+};
 
 const decideLanguage = (languageOfCodeBlock: string | null): string | null => {
   const configurations = vscode.workspace.getConfiguration("markdown-code-block-formatter");
@@ -90,15 +114,14 @@ const decideLanguage = (languageOfCodeBlock: string | null): string | null => {
   return languageOfCodeBlock;
 };
 
-const findCodeBlockElement = (currentLine: number, parseResult: any): CodeBlock | null => {
+const findCodeBlockElement = (currentLine: number, parseResult: any, formatAll: boolean, elements: CodeBlock[]): CodeBlock[] | null => {
   if (parseResult?.children) {
     for (const element of parseResult?.children) {
       if (
         element?.type === "code" &&
         element?.value !== undefined &&
         element?.value !== null &&
-        element?.position?.start?.line <= currentLine + 1 &&
-        element?.position?.end?.line >= currentLine + 1
+        (formatAll || (element?.position?.start?.line <= currentLine + 1 && element?.position?.end?.line >= currentLine + 1))
       ) {
         const offset = 1; // line number starts from 1
         const startLine = element.position.start.line - offset + 1; // + 1 to ignore first line
@@ -114,34 +137,51 @@ const findCodeBlockElement = (currentLine: number, parseResult: any): CodeBlock 
           return null;
         }
         vscode.languages.getLanguages().then((supportedLanguages) => {
-          if (!(language in supportedLanguages)) {
+          if (!supportedLanguages.includes(language)) {
             vscode.window.showWarningMessage(`Language id "${language}" is unkown. Supported languages are: [${supportedLanguages.join(", ")}]`);
           }
         });
 
-        return {
+        elements.push({
           language: language,
           range: new vscode.Range(new vscode.Position(startLine, 0), endRange),
           text: element.value,
-        };
+        });
+        if (!formatAll) {
+          return elements;
+        }
       }
       // dfs
-      const res = findCodeBlockElement(currentLine, element);
-      if (res !== undefined && res !== null) {
-        return res;
+      findCodeBlockElement(currentLine, element, formatAll, elements);
+      if (!formatAll && elements.length > 0) {
+        return elements;
       }
     }
   }
-  return null;
+  return elements;
 };
 
-const getCodeBlock = (currentLine: number, markdownText: string): CodeBlock | null => {
+const getCodeBlocks = (currentLine: number, markdownText: string, formatAll: boolean): CodeBlock[] | null => {
   const parseResult = unified().use(remarkParse).use(remarkGfm).parse(markdownText);
-  return findCodeBlockElement(currentLine, parseResult);
+  return findCodeBlockElement(currentLine, parseResult, formatAll, []);
+};
+
+const minifyJson = (codeBlock: CodeBlock): string => {
+  return JSON.stringify(JSON.parse(codeBlock.text));
+};
+
+const getMinifiedCode = (codeBlock: CodeBlock): string | null => {
+  switch (codeBlock.language) {
+    case "json":
+      return minifyJson(codeBlock);
+    default:
+      vscode.window.showWarningMessage("Minify of code block is only supported for JSON.");
+      return null;
+  }
 };
 
 const getFormattedCode = async (codeBlock: CodeBlock): Promise<string | undefined> => {
-  let doc = await vscode.workspace.openTextDocument({ language: codeBlock.language, content: codeBlock.text });
+  const doc = await vscode.workspace.openTextDocument({ language: codeBlock.language, content: codeBlock.text });
   await vscode.window.showTextDocument(doc, { preview: false, preserveFocus: false });
   await vscode.commands.executeCommand("editor.action.formatDocument", doc.uri);
   const editor = vscode.window.activeTextEditor;
@@ -149,7 +189,7 @@ const getFormattedCode = async (codeBlock: CodeBlock): Promise<string | undefine
   if (editor) {
     text = editor.document.getText();
     // close the editor
-    editor.edit((builder) => {
+    await editor.edit((builder) => {
       // delete the contents so that no dialogue is shown
       const lineNum = editor.document.lineCount;
       builder.delete(new vscode.Range(new vscode.Position(0, 0), editor.document.lineAt(lineNum - 1).range.end));
